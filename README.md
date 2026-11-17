@@ -35,4 +35,4 @@
 
 ## Авторы
 
-Игру сделал [vakovalskii](https://github.com/vakovalskii) вместе с ИИ-агентами: [Claude Code](https://claude.com/claude-code) и [Qwen Code](https://github.com/QwenLM/qwen-code) (Qwen Coder).
+Игру сделал [vakovalskii](https://github.com/vakovalskii) вместе с CLI-агентами [Claude Code](https://claude.com/claude-code) и [Qwen Code CLI](https://github.com/QwenLM/qwen-code) (модель Qwen Coder).
