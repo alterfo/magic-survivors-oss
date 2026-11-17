@@ -1,0 +1,16 @@
+# systemd: кооператив Magic Survivors (WebSocket-комнаты на двоих) — /etc/systemd/system/magicsurvival-coop.service
+[Unit]
+Description=Magic Survivors coop relay
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/magicsurvival
+EnvironmentFile=-/srv/magicsurvival/server/.env
+ExecStart=/usr/bin/python3 /srv/magicsurvival/server/coop.py
+Restart=always
+RestartSec=3
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+# systemd: идеи и голосование Magic Survivors — /etc/systemd/system/magicsurvival-ideas.service
+[Unit]
+Description=Magic Survivors ideas and voting API
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/magicsurvival
+EnvironmentFile=-/srv/magicsurvival/server/.env
+ExecStart=/usr/bin/python3 /srv/magicsurvival/server/ideas.py
+Restart=always
+RestartSec=3
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

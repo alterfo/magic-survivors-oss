@@ -1,0 +1,24 @@
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/UserSettings/
+/Build/
+/Builds/
+/MemoryCaptures/
+*.csproj
+*.sln
+.DS_Store
+/_Recovery/
+/_Recovery.meta
+/Assets/_Recovery/
+/Assets/_Recovery.meta
+.playwright-mcp/
+__pycache__/
+# служебные файлы, которые Unity кладёт при сборке
+/Assets/Resources/PerformanceTestRun*
+/Data/
+
+# свой сервер: настройки и база
+server/.env
+/data/

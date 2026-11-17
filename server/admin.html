@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Magic Survivors — онлайн</title>
+<style>
+  :root { --bg:#0f0d14; --card:#1a1622; --line:#2c2638; --text:#ece6f5; --mute:#8d84a0; --play:#7be0a3; --menu:#b49cff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:900px; margin:0 auto; padding:20px 16px 40px; }
+  header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:18px; margin:0; font-weight:600; }
+  .upd { color:var(--mute); font-size:13px; }
+  .upd.bad { color:#ff8a8a; }
+  .hero { margin:24px 0 8px; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  .big { font-size:72px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+  .split { color:var(--mute); }
+  .split b { font-weight:600; }
+  .split .p { color:var(--play); } .split .m { color:var(--menu); }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin:20px 0; }
+  .tile { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .tile .k { color:var(--mute); font-size:12px; }
+  .tile .v { font-size:24px; font-weight:600; font-variant-numeric:tabular-nums; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:12px; }
+  h2 { font-size:13px; color:var(--mute); font-weight:500; margin:0 0 10px; text-transform:uppercase; letter-spacing:.04em; }
+  svg { width:100%; height:140px; display:block; }
+  .legend { color:var(--mute); font-size:12px; margin-top:6px; }
+  .legend i { display:inline-block; width:10px; height:3px; vertical-align:middle; margin:0 4px 0 10px; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:7px 6px; border-top:1px solid var(--line); font-size:14px; }
+  th { color:var(--mute); font-weight:500; font-size:12px; border-top:none; }
+  .empty { color:var(--mute); padding:8px 0; }
+  .wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Magic Survivors · онлайн</h1><span class="upd" id="upd">загружаю…</span></header>
+  <div class="hero"><span class="big" id="online">–</span>
+    <span class="split">сейчас в игре · <b class="p" id="play">–</b> в забеге · <b class="m" id="menu">–</b> в меню</span></div>
+  <div class="tiles">
+    <div class="tile"><div class="k">Пик за 24 ч</div><div class="v" id="peak">–</div></div>
+    <div class="tile"><div class="k">Зашли сегодня</div><div class="v" id="today">–</div></div>
+    <div class="tile"><div class="k">Забегов сегодня</div><div class="v" id="runsToday">–</div></div>
+    <div class="tile"><div class="k">Игроков всего</div><div class="v" id="players">–</div></div>
+  </div>
+  <section><h2>Онлайн за 24 часа</h2><svg id="chart" viewBox="0 0 860 140" preserveAspectRatio="none"></svg>
+    <div class="legend"><i style="background:var(--menu)"></i>всего<i style="background:var(--play)"></i>в забеге</div></section>
+  <section><h2>Забеги прямо сейчас</h2><div class="wrap" id="runs"></div></section>
+</main>
+<script>
+const key = new URLSearchParams(location.search).get("key") || "";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mmss = s => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+
+function chart(series, now) {
+  const W = 860, H = 140, from = now - 86400;
+  const max = Math.max(1, ...series.map(r => r[1]));
+  const x = t => (t - from) / 86400 * W, y = v => H - 14 - v / max * (H - 24);
+  const line = i => series.map((r, k) => (k ? "L" : "M") + x(r[0]).toFixed(1) + "," + y(r[i]).toFixed(1)).join("");
+  let g = "";
+  for (let h = 0; h <= 24; h += 6) {
+    const t = from + h * 3600, d = new Date(t * 1000);
+    g += `<text x="${Math.min(x(t), W - 30)}" y="${H - 1}" fill="#8d84a0" font-size="11">${String(d.getHours()).padStart(2,"0")}:00</text>`;
+  }
+  g += `<text x="0" y="11" fill="#8d84a0" font-size="11">${max}</text>`;
+  if (series.length) g += `<path d="${line(1)}" fill="none" stroke="#b49cff" stroke-width="2"/><path d="${line(2)}" fill="none" stroke="#7be0a3" stroke-width="2"/>`;
+  else g += `<text x="${W/2}" y="${H/2}" fill="#8d84a0" font-size="13" text-anchor="middle">данные копятся раз в минуту</text>`;
+  $("chart").innerHTML = g;
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/admin/online?key=" + encodeURIComponent(key), { cache: "no-store" });
+    if (r.status === 403) { $("upd").textContent = "нет доступа — нужен ?key="; $("upd").className = "upd bad"; return; }
+    const d = await r.json();
+    $("online").textContent = d.online; $("play").textContent = d.play; $("menu").textContent = d.menu;
+    $("peak").textContent = d.peak24; $("today").textContent = d.today;
+    $("runsToday").textContent = d.runs_today; $("players").textContent = d.players;
+    document.title = `(${d.online}) Magic Survivors — онлайн`;
+    chart(d.series, d.now);
+    $("runs").innerHTML = d.runs.length
+      ? "<table><tr><th>Ник</th><th>Время</th><th>Ур.</th><th>Карта</th><th>Герой</th><th>Сложность</th><th>Платформа</th></tr>" +
+        d.runs.map(x => `<tr><td>${esc(x.nick)}</td><td>${mmss(x.secs)}</td><td>${x.level}</td><td>${esc(x.map)}</td><td>${esc(x.hero)}</td><td>${esc(x.diff)}</td><td>${esc(x.platform)}</td></tr>`).join("") + "</table>"
+      : '<div class="empty">никто не в забеге</div>';
+    $("upd").textContent = "обновлено " + new Date().toLocaleTimeString("ru-RU"); $("upd").className = "upd";
+  } catch (e) { $("upd").textContent = "нет связи с сервером"; $("upd").className = "upd bad"; }
+}
+load(); setInterval(load, 10000);
+</script>
+</body>
+</html>

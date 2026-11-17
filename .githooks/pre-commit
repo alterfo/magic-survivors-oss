@@ -1,0 +1,33 @@
+#!/bin/sh
+# Хук перед коммитом (включить: git config core.hooksPath .githooks).
+# Не пускает в репо секреты, ключи, базу игроков и случайные большие файлы. Обходить через --no-verify нельзя:
+# если сработал ложно — поправь правило здесь в отдельном коммите.
+fail=0
+files=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$files" ] && exit 0
+
+for f in $files; do
+  case "$f" in
+    *.env.example) ;;   # пример настроек без значений — можно
+    *.env|*.env.*|*/ideas.env|*.pem|*.key|*_ed25519|*_rsa|*.db|*.db-*|*.sqlite|*.local.*)
+      echo "pre-commit: $f — секрет или база данных, такому не место в репо"; fail=1 ;;
+  esac
+  # больше 20 МБ — почти наверняка сборка или дамп (текстуры и музыка меньше)
+  if [ -f "$f" ]; then
+    size=$(wc -c < "$f" | tr -d ' ')
+    if [ "$size" -gt 20971520 ]; then echo "pre-commit: $f — $((size / 1048576)) МБ, слишком большой"; fail=1; fi
+  fi
+done
+
+# содержимое: приватные ключи, токены и секреты со значением
+pat='BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|xox[bap]-[A-Za-z0-9-]{20,}|[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}|(HUB_CLIENT_SECRET|TELEGRAM_BOT_TOKEN|NEURALDEEP_API_KEY|API_KEY|SECRET)=[^ <$"'"'"'{]{8,}'
+hits=$(git diff --cached -U0 --diff-filter=ACM -- . ':(exclude).githooks/*' | grep -E '^\+' | grep -nEo "$pat" | head -5)
+if [ -n "$hits" ]; then
+  echo "pre-commit: в изменениях похоже на секрет:"
+  # сам секрет не печатаем: оставляем начало, остальное — <…>
+  echo "$hits" | sed -E 's/=.*/=<…>/; s/(sk-|ghp_|github_pat_|xox[bap]-)[A-Za-z0-9_-]+/\1<…>/; s/([0-9]{8,10}):AA[A-Za-z0-9_-]+/\1:<…>/; s/PRIVATE KEY.*/PRIVATE KEY <…>/'
+  fail=1
+fi
+
+[ $fail -ne 0 ] && echo "pre-commit: коммит остановлен (секреты и базу игроков не коммитим)"
+exit $fail
