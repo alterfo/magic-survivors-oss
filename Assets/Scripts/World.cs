@@ -214,7 +214,7 @@ public static class World
     class Baked { public Mesh mesh; public string[] bones; public string rootBone; }
     static readonly Dictionary<string, Baked> baked = new();
 
-    public static Renderer[] Combine(GameObject go, string key, Material mat)
+    public static Renderer[] Combine(GameObject go, string key, Material mat, bool vatOn = false)
     {
         var smrs = go.GetComponentsInChildren<SkinnedMeshRenderer>();
         if (smrs.Length == 0) return go.GetComponentsInChildren<Renderer>();
@@ -225,7 +225,7 @@ public static class World
         if (!baked.TryGetValue(key, out var b)) baked[key] = b = Bake(go, smrs, holder.transform);
         var model = key.Split('|')[0];
         var vat = VatMobs.Get(model);
-        var vmat = vat != null && !vatOff && model.StartsWith("Skeleton") && vat.tex.width == b.mesh.vertexCount ? VatMaterial(model, vat) : null;
+        var vmat = vatOn && vat != null && !vatOff && model.StartsWith("Skeleton") && vat.tex.width == b.mesh.vertexCount ? VatMaterial(model, vat) : null;
         if (vmat != null)
         {
             holder.AddComponent<MeshFilter>().sharedMesh = b.mesh;

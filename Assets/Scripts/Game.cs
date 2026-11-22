@@ -802,7 +802,7 @@ public partial class Game : MonoBehaviour
             e = new Enemy();
             e.go = World.Character(t.model, 1f, out e.anim, out _);
             World.Attach(e.go, t.weapon, World.Skeleton);
-            e.rends = World.Combine(e.go, t.model + "|" + t.weapon, World.Skeleton);
+            e.rends = World.Combine(e.go, t.model + "|" + t.weapon, World.Skeleton, true);
             // после склейки исходные рендеры выключены, и аниматор с отсечением считает скелет невидимым — кости замирают
             e.anim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             e.anim.keepAnimatorStateOnDisable = true;
@@ -1015,7 +1015,7 @@ public partial class Game : MonoBehaviour
                 if (bit)
                 {
                     e.attackCd -= dt;
-                    if (e.attackCd <= 0) { e.attackCd = 1.3f; e.anim.CrossFade("Attack", 0.05f); VatState(e.rends, "Attack"); }
+                    if (e.attackCd <= 0) { e.attackCd = 1.3f; e.atkAnim = 0.8f; e.anim.CrossFade("Attack", 0.05f); }
                 }
             }
 
@@ -1025,6 +1025,9 @@ public partial class Game : MonoBehaviour
                 float a = e.spawnLock > 0 ? 1 : e.animSpeed * (e.stun > 0 ? 0.15f : e.slow > 0 ? 0.55f : e.rage ? 1.25f : 1f);
                 if (e.anim.speed != a) e.anim.speed = a;
             }
+            if (e.atkAnim > 0) e.atkAnim -= dt;
+            if (e.spawnLock > 0) VatState(e.rends, "Idle");
+            else VatState(e.rends, e.atkAnim > 0 ? "Attack" : e.type.speed > 2.5f ? "Run" : "Walk");
             float punch = 0;
             if (e.flash > 0)
             {
@@ -1689,7 +1692,7 @@ public partial class Game : MonoBehaviour
                 if (p.mf.sharedMesh == p.baseMesh)
                 {
                     p.mf.sharedMesh = Vfx.Icicles[pi % Vfx.Icicles.Length];
-                    p.mat.SetColor("_Color", new Color(1.4f, 2.4f, 3.6f));
+                    p.mat.SetColor("_Color", new Color(0.55f, 0.85f, 1f));
                     p.rend.sharedMaterial = p.mat;
                 }
                 p.tr.rotation = Quaternion.LookRotation(fwd) * Quaternion.Euler(90, 0, 0);

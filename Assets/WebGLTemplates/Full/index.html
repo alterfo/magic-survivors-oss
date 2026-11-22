@@ -41,9 +41,17 @@
         queue = [];
         for (var i = 0; i < cbs.length; i++) cbs[i](now);
       }
-      window.SetFrameCap = function (fps) { cap = fps | 0; flush(); };
+      var next = 0;
+      window.SetFrameCap = function (fps) { cap = fps | 0; next = 0; flush(); };
       raf(function tick(t) {
-        if (!cap || t - last >= 1000 / cap - 1) { last = t; flush(); }
+        if (!cap) { flush(); raf(tick); return; }
+        var step = 1000 / cap;
+        if (!next) next = t;
+        if (t >= next - 1) {
+          next += step;
+          if (t - next > step) next = t + step;
+          flush();
+        }
         raf(tick);
       });
       window.requestAnimationFrame = function (cb) { queue.push(cb); return 0; };
