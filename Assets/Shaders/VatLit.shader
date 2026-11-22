@@ -34,9 +34,12 @@ Shader "Magic/VatLit"
                 float _VatFrames;
                 float _VatFps;
                 float _VatVerts;
-                float _VatStateOffset;
-                float _VatStateFrames;
             CBUFFER_END
+            float _VatStateOffset;
+            float _VatStateFrames;
+            float _VatStateStart;
+            float _VatSpeed;
+            float _VatLoop;
 
             struct Attributes
             {
@@ -56,7 +59,7 @@ Shader "Magic/VatLit"
 
             float3 SampleVat(uint vid, float frame)
             {
-                float f = fmod(frame, _VatFrames);
+                float f = clamp(frame, _VatStateOffset, _VatStateOffset + _VatStateFrames - 1);
                 float row = (f + 0.5) / _VatFrames;
                 float col = ((float)vid + 0.5) / _VatVerts;
                 return SAMPLE_TEXTURE2D_LOD(_VatTex, sampler_VatTex, float2(col, row), 0).xyz;
@@ -65,7 +68,10 @@ Shader "Magic/VatLit"
             Varyings vert (Attributes v)
             {
                 Varyings o;
-                float frame = _VatStateOffset + fmod(_Time.y * _VatFps, _VatStateFrames);
+                float elapsed = max(0, _Time.y - _VatStateStart) * _VatFps * max(0.05, _VatSpeed);
+                float frame = _VatLoop > 0.5
+                    ? _VatStateOffset + fmod(elapsed, _VatStateFrames)
+                    : _VatStateOffset + min(_VatStateFrames - 1, elapsed);
                 float f0 = floor(frame);
                 float3 p0 = SampleVat(v.vid, f0);
                 float3 p1 = SampleVat(v.vid, f0 + 1);

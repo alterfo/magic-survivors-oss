@@ -13,12 +13,13 @@ public static class VatMobs
 
     static readonly Dictionary<string, Info> cache = new();
 
-    public static Info Get(string model)
+    public static Info Get(string model, string weapon)
     {
-        if (cache.TryGetValue(model, out var cached)) return cached;
-        var tex = Resources.Load<Texture2D>("Vat/" + model + "_VAT");
-        var meta = Resources.Load<TextAsset>("Vat/" + model + "_VAT");
-        if (tex == null || meta == null) { cache[model] = null; return null; }
+        var file = string.IsNullOrEmpty(weapon) ? model + "_VAT" : model + "_" + weapon + "_VAT";
+        if (cache.TryGetValue(file, out var cached)) return cached;
+        var tex = Resources.Load<Texture2D>("Vat/" + file);
+        var meta = Resources.Load<TextAsset>("Vat/" + file);
+        if (tex == null || meta == null) { cache[file] = null; return null; }
         var info = new Info { tex = tex };
         foreach (var line in meta.text.Split('\n'))
         {
@@ -27,13 +28,15 @@ public static class VatMobs
             info.offset[parts[0]] = off;
             info.frames[parts[0]] = fr;
         }
-        cache[model] = info;
+        cache[file] = info;
         return info;
     }
 }
 
 public class VatActor : MonoBehaviour
 {
+    static readonly string[] Looping = { "Idle", "Walk", "Run" };
+
     public Renderer rend;
     VatMobs.Info info;
     MaterialPropertyBlock block;
@@ -47,16 +50,23 @@ public class VatActor : MonoBehaviour
         State("Idle");
     }
 
+    float start, speed = 1f, loop = 1f;
+
     public void State(string state)
     {
         if (info == null) return;
         if (info.offset.TryGetValue(state, out var o))
         {
+            if (o == offset && frames > 0) { Push(); return; }
             offset = o;
             frames = info.frames.TryGetValue(state, out var f) ? Mathf.Max(1, f) : 32;
+            start = Time.time;
+            loop = System.Array.IndexOf(Looping, state) >= 0 ? 1f : 0f;
         }
         Push();
     }
+
+    public void Speed(float v) { if (Mathf.Approximately(v, speed)) return; speed = Mathf.Max(0.05f, v); Push(); }
 
     public void Tint(Color c) { color = c; Push(); }
 
@@ -66,6 +76,9 @@ public class VatActor : MonoBehaviour
         block.SetColor("_Color", color);
         block.SetFloat("_VatStateOffset", offset);
         block.SetFloat("_VatStateFrames", frames);
+        block.SetFloat("_VatStateStart", start);
+        block.SetFloat("_VatSpeed", speed);
+        block.SetFloat("_VatLoop", loop);
         rend.SetPropertyBlock(block);
     }
 }

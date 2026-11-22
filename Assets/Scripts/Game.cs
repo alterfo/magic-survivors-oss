@@ -873,7 +873,7 @@ public partial class Game : MonoBehaviour
         if (e.frozen > 0) tint = new Color(0.4f, 0.62f, 1.05f);
         else if (e.slow > 0) tint = Color.Lerp(tint, new Color(0.6f, 0.85f, 1.3f), 0.5f);
         var va = e.rends != null && e.rends.Length > 0 ? e.rends[0].GetComponent<VatActor>() : null;
-        if (va != null) { va.Tint(e.flash > 0.02f ? Color.Lerp(tint, Color.white, 0.55f) : tint); return; }
+        if (va != null) { va.Tint(e.flash > 0.02f ? Color.Lerp(tint, Color.white, 0.55f) : World.VatTint(tint, e.tier >= 4 ? 0.15f : 0f)); return; }
         var m = e.flash > 0.02f ? World.FlashMat : World.SkelMat(tint, e.frozen > 0 ? 0.12f : e.tier >= 4 ? 0.15f : 0);
         if (m == e.mat) return;
         e.mat = m;
@@ -881,6 +881,12 @@ public partial class Game : MonoBehaviour
     }
 
     public void Tint(Renderer r, Color c) => r.sharedMaterial = World.GlowMat(c);
+
+    static void VatSpeed(Renderer[] rends, float speed)
+    {
+        var a = rends != null && rends.Length > 0 ? rends[0].GetComponent<VatActor>() : null;
+        if (a != null) a.Speed(speed);
+    }
 
     static void VatState(Renderer[] rends, string state)
     {
@@ -1024,6 +1030,7 @@ public partial class Game : MonoBehaviour
             {
                 float a = e.spawnLock > 0 ? 1 : e.animSpeed * (e.stun > 0 ? 0.15f : e.slow > 0 ? 0.55f : e.rage ? 1.25f : 1f);
                 if (e.anim.speed != a) e.anim.speed = a;
+                VatSpeed(e.rends, a);
             }
             if (e.atkAnim > 0) e.atkAnim -= dt;
             if (e.spawnLock > 0) VatState(e.rends, "Idle");

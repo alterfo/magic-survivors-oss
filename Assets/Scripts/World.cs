@@ -82,6 +82,12 @@ public static class World
         return m;
     }
 
+    public static Color VatTint(Color tint, float glow)
+    {
+        var c = tint * Level.enemyTint;
+        return c * (1f + Mathf.Min(0.8f, glow + Level.enemyGlow));
+    }
+
     public static Material FlashMat
     {
         get
@@ -223,8 +229,10 @@ public static class World
         var holder = new GameObject("Combined");
         holder.transform.SetParent(go.transform, false);
         if (!baked.TryGetValue(key, out var b)) baked[key] = b = Bake(go, smrs, holder.transform);
-        var model = key.Split('|')[0];
-        var vat = VatMobs.Get(model);
+        var parts = key.Split('|');
+        var model = parts[0];
+        var weapon = parts.Length > 1 ? parts[1] : "";
+        var vat = VatMobs.Get(model, weapon);
         var vmat = vatOn && vat != null && !vatOff && model.StartsWith("Skeleton") && vat.tex.width == b.mesh.vertexCount ? VatMaterial(model, vat) : null;
         if (vmat != null)
         {

@@ -10,7 +10,9 @@ public static class VatBaker
     static readonly string[,] States = {
         { "Idle", "Idle" }, { "Walk", "Walking_D_Skeletons" }, { "Run", "Running_A" },
         { "Attack", "1H_Melee_Attack_Chop" }, { "Hit", "Hit_A" }, { "Death", "Death_C_Skeletons" } };
-    static readonly string[] Models = { "Skeleton_Warrior", "Skeleton_Mage", "Skeleton_Rogue", "Skeleton_Minion" };
+    static readonly string[,] Models = {
+        { "Skeleton_Warrior", "Skeleton_Axe" }, { "Skeleton_Mage", "Skeleton_Staff" },
+        { "Skeleton_Rogue", "Skeleton_Blade" }, { "Skeleton_Minion", "" } };
 
     [MenuItem("Build/Bake VAT (skeletons)")]
     public static void BakeMenu() => Bake();
@@ -18,15 +20,16 @@ public static class VatBaker
     public static void Bake()
     {
         Directory.CreateDirectory("Assets/Resources/Vat");
-        foreach (var name in Models) BakeModel(name);
+        for (int i = 0; i < Models.GetLength(0); i++) BakeModel(Models[i, 0], Models[i, 1]);
         AssetDatabase.SaveAssets();
         Debug.Log("vat: bake done");
     }
 
-    static void BakeModel(string name)
+    static void BakeModel(string name, string weapon)
     {
         var prefab = Resources.Load<GameObject>("Models/Characters/" + name);
         var ctrl = Resources.Load<RuntimeAnimatorController>("Anim/" + name);
+        var file = string.IsNullOrEmpty(weapon) ? name + "_VAT" : name + "_" + weapon + "_VAT";
         if (prefab == null || ctrl == null) { Debug.Log($"vat: skip {name} prefab={prefab != null} ctrl={ctrl != null}"); return; }
         var go = Object.Instantiate(prefab);
         var anim = go.GetComponentInChildren<Animator>();
@@ -34,8 +37,9 @@ public static class VatBaker
         anim.runtimeAnimatorController = ctrl;
         anim.applyRootMotion = false;
         anim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-        // печём по склеенному мешу: в игре моб рисуется через World.Combine, порядок вершин должен совпасть
-        var combined = World.Combine(go, "vat_" + name, Resources.Load<Material>("Mats/Skeleton"));
+        var mat = Resources.Load<Material>("Mats/Skeleton");
+        if (!string.IsNullOrEmpty(weapon)) World.Attach(go, weapon, mat);
+        var combined = World.Combine(go, "vat_" + file, mat);
         var smr = combined.Length > 0 ? combined[0] as SkinnedMeshRenderer : null;
         if (smr == null) { Debug.Log($"vat: skip {name} (no combined mesh)"); Object.DestroyImmediate(go); return; }
         if (smr == null) { Debug.Log($"vat: skip {name} (no skinned mesh)"); Object.DestroyImmediate(go); return; }
@@ -91,10 +95,10 @@ public static class VatBaker
         foreach (var r in rows) { r.CopyTo(all, at); at += r.Length; }
         tex.SetPixels(all);
         tex.Apply();
-        AssetDatabase.CreateAsset(tex, $"Assets/Resources/Vat/{name}_VAT.asset");
+        AssetDatabase.CreateAsset(tex, $"Assets/Resources/Vat/{file}.asset");
         var text = new TextAsset(meta.ToString());
-        AssetDatabase.CreateAsset(text, $"Assets/Resources/Vat/{name}_VAT.txt");
-        Debug.Log($"vat: {name} verts={verts} total_frames={total}");
+        AssetDatabase.CreateAsset(text, $"Assets/Resources/Vat/{file}.txt");
+        Debug.Log($"vat: {file} verts={verts} total_frames={total}");
         Object.DestroyImmediate(go);
     }
 }
