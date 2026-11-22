@@ -101,6 +101,7 @@ public class Proj
     public MeshFilter mf;
     public Mesh baseMesh;
     public Light light;
+    public Material mat;
     public bool alive;
     public Mage owner;
     public readonly HashSet<Enemy> hit = new();

@@ -22,3 +22,11 @@ __pycache__/
 # свой сервер: настройки и база
 server/.env
 /data/
+/Assets/Resources/Sprites/*.png
+/Assets/Resources/Sprites/*.txt
+/Assets/Resources/Vat/*.asset
+/Assets/Resources/Vat/*.txt
+/Assets/Resources/Vat/*.json
+/Assets/Resources/Vat/*.asset.meta
+/Assets/Resources/Vat/*.txt.meta
+/Assets/Resources/Vat/*.json.meta
